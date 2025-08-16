@@ -35,7 +35,7 @@ export const captchaPaywallHtml = `<!doctype html>
           <button id="submitBtn" type="submit">Verify</button>
           <button id="refreshBtn" type="button" class="secondary">New challenge</button>
         </div>
-        <div class="hint">Pass → redirect to <code>?captcha=success</code>. Fail → redirect to <code>?captcha=fail</code>.</div>
+        <div class="hint">Pass → continue. Fail → redirect to <code>?captcha=fail</code>.</div>
       </form>
     </div>
 
@@ -85,11 +85,24 @@ export const captchaPaywallHtml = `<!doctype html>
           var ok = Number.isFinite(provided) && provided === challenge.answer;
 
           submitBtn.disabled = true;
-          var status = ok ? 'success' : 'fail';
           var basePath = window.location.pathname;
-          setTimeout(function() {
-            window.location.href = basePath + '?captcha=' + status;
-          }, 150);
+          if (ok) {
+            // On success, ask the server to set a one-time token cookie, then continue
+            fetch('/api/captcha/solve', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path: basePath }) })
+              .then(function (response) { 
+                if (response.ok) {
+                  window.location.href = basePath; 
+                } else {
+                  window.location.href = basePath + '?captcha=fail';
+                }
+              })
+              .catch(function () { 
+                window.location.href = basePath + '?captcha=fail'; 
+              });
+          } else {
+            // On failure, show the paywall
+            window.location.href = basePath + '?captcha=fail';
+          }
         }
 
         form.addEventListener('submit', function(e) {
