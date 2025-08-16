@@ -5,6 +5,12 @@
     "source.fixAll.biome": "explicit"
   },
   "eslint.enable": false,
-  "prettier.enable": false
+  "prettier.enable": false,
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  }
 }
 
