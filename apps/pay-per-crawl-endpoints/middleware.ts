@@ -1,5 +1,10 @@
 import type { Address } from "viem";
-import { type Network, paymentMiddleware, type Resource } from "./custom-middleware";
+import { captchaPaywallHtml } from "./captchaPaywallHtml";
+import {
+	type Network,
+	paymentMiddleware,
+	type Resource,
+} from "./custom-middleware";
 
 const facilitatorUrl = process.env.NEXT_PUBLIC_FACILITATOR_URL as Resource;
 const payTo = process.env.RESOURCE_WALLET_ADDRESS as Address;
@@ -13,7 +18,7 @@ export const middleware = paymentMiddleware(
 			network,
 			config: {
 				description: "Access to protected content",
-				customPaywallHtml: "<h1>Ciao</h1>"
+				customPaywallHtml: captchaPaywallHtml,
 			},
 		},
 	},
