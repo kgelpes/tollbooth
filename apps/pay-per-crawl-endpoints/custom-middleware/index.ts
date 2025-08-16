@@ -101,11 +101,12 @@ export function paymentMiddleware(
   return async function middleware(request: NextRequest) {
     const pathname = request.nextUrl.pathname;
     const method = request.method.toUpperCase();
+    const captcha = request.nextUrl.searchParams.get("captcha");
 
     // Find matching route configuration
     const matchingRoute = findMatchingRoute(routePatterns, pathname, method);
 
-    if (!matchingRoute) {
+    if (!matchingRoute || captcha == "success") {
       return NextResponse.next();
     }
 
@@ -174,10 +175,12 @@ export function paymentMiddleware(
           } else {
             displayAmount = Number(price.amount) / 10 ** price.asset.decimals;
           }
+          
+          // customPaywallHtml should only be shown if the captcha hasn't previously failed
 
-          const html =
-            customPaywallHtml ??
-            getPaywallHtml({
+          let html;
+          if(captcha == "fail"){
+            html = getPaywallHtml({
               amount: displayAmount,
               paymentRequirements: toJsonSafe(paymentRequirements) as Parameters<
                 typeof getPaywallHtml
@@ -189,6 +192,10 @@ export function paymentMiddleware(
               appName: paywall?.appName,
               sessionTokenEndpoint: paywall?.sessionTokenEndpoint,
             });
+          } else {
+            html = customPaywallHtml;
+          }
+
           return new NextResponse(html, {
             status: 402,
             headers: { "Content-Type": "text/html" },
