@@ -1,4 +1,3 @@
-// Removed OnchainKit styles
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { Providers } from "../providers/providers";

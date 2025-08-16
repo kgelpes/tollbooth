@@ -1,9 +1,5 @@
-import { createServerClient } from "@supabase/ssr";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export async function middleware(request: NextRequest) {
 	const { pathname } = request.nextUrl;
@@ -16,37 +12,22 @@ export async function middleware(request: NextRequest) {
 		return NextResponse.next();
 	}
 
-	// If Supabase env vars are missing, fail open (do not block route)
-	if (!supabaseUrl || !supabaseKey) {
-		return NextResponse.next();
-	}
-
-	let response = NextResponse.next({
-		request: {
-			headers: request.headers,
-		},
-	});
-
-	const supabase = createServerClient(supabaseUrl, supabaseKey, {
-		cookies: {
-			getAll() {
-				return request.cookies.getAll();
+	try {
+		const sessionRes = await fetch(new URL("/api/auth/session", request.url), {
+			headers: {
+				cookie: request.headers.get("cookie") ?? "",
 			},
-			setAll(cookiesToSet) {
-				cookiesToSet.forEach(({ name, value }) => {
-					request.cookies.set(name, value);
-				});
-				response = NextResponse.next({ request });
-				cookiesToSet.forEach(({ name, value, options }) => {
-					response.cookies.set(name, value, options);
-				});
-			},
-		},
-	});
+			cache: "no-store",
+		});
 
-	const { data } = await supabase.auth.getSession();
-	if (data?.session) {
-		return response;
+		if (sessionRes.ok) {
+			const data = await sessionRes.json().catch(() => null);
+			if (data?.session) {
+				return NextResponse.next();
+			}
+		}
+	} catch (error) {
+		console.error("Middleware auth check failed:", error);
 	}
 
 	const redirectUrl = request.nextUrl.clone();
