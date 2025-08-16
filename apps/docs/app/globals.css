@@ -1,3 +1,5 @@
+@import "@tollbooth/ui/globals.css";
+
 :root {
 	--background: #ffffff;
 	--foreground: #171717;
