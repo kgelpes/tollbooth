@@ -121,6 +121,35 @@ export function PaywallApp() {
     }
   }, [switchChainAsync, paymentChain, isCorrectChain]);
 
+  async function addPayment(address, pathname, expirationDate) {
+    try {
+      const response = await fetch("/api/add-payment", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          address,
+          pathname,
+          expiration_date: expirationDate, // ISO string e.g., "2025-08-16T12:00:00Z"
+        }),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        console.log("Payment added:", data);
+        return data;
+      } else {
+        console.error("Error adding payment:", data);
+        return null;
+      }
+    } catch (err) {
+      console.error("Fetch error:", err);
+      return null;
+    }
+  }
+
+
   const handlePayment = useCallback(async () => {
     if (!address || !x402 || !paymentRequirements) {
       return;
@@ -165,6 +194,12 @@ export function PaywallApp() {
       });
 
       if (response.ok) {
+        const deltaTime = paymentRequirements.expirationTime ? paymentRequirements.expirationTime : 3600 * 1000;
+        addPayment(
+          address,
+          window.location.pathname,
+          new Date(Date.now() + deltaTime).toISOString()
+        )
         await handleSuccessfulResponse(response);
       } else if (response.status === 402) {
         // Try to parse error data, fallback to empty object if parsing fails
@@ -203,6 +238,35 @@ export function PaywallApp() {
       setIsPaying(false);
     }
   }, [address, x402, paymentRequirements, publicClient, paymentChain, handleSwitchChain]);
+
+  async function checkPayment(pathname, address) {
+    try {
+      const response = await fetch("/api/check-payment", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ pathname, address }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        // Redirect to same page with query param
+        window.location.href = "?captcha=success";
+      } else {
+        console.log("Payment not valid:", data);
+      }
+    } catch (err) {
+      console.error("Fetch error:", err);
+    }
+  }
+
+  useEffect(() => {
+    if(address){
+      checkPayment(window.location.pathname, address);
+    }
+  }, [address])
 
   if (!x402 || !paymentRequirements) {
     return (
