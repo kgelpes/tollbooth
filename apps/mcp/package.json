@@ -1,25 +1,25 @@
 {
-  "name": "mcp402",
-  "version": "1.0.0",
-  "description": "",
-  "type": "module",
-  "scripts": {
-    "dev": "tsx index.ts"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.17.3",
-    "axios": "^1.11.0",
-    "dotenv": "^16.6.1",
-    "viem": "^2.33.3",
-    "x402-axios": "^0.5.1",
-    "zod": "^4.0.17"
-  },
-  "devDependencies": {
-    "@types/node": "^22.15.3",
-    "tsx": "^4.20.4",
-    "typescript": "^5.9.2"
-  }
+	"name": "@tollbooth/mcp",
+	"version": "1.0.0",
+	"description": "",
+	"type": "module",
+	"scripts": {
+		"dev": "tsx index.ts"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "ISC",
+	"dependencies": {
+		"@modelcontextprotocol/sdk": "^1.17.3",
+		"axios": "^1.11.0",
+		"dotenv": "^16.6.1",
+		"viem": "^2.33.3",
+		"x402-axios": "^0.5.1",
+		"zod": "^4.0.17"
+	},
+	"devDependencies": {
+		"@types/node": "^22.15.3",
+		"tsx": "^4.20.4",
+		"typescript": "^5.9.2"
+	}
 }

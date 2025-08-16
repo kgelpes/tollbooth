@@ -1,4 +1,4 @@
-import { Button } from "@repo/ui/button";
+import { Button } from "@tollbooth/ui/button";
 import Image, { type ImageProps } from "next/image";
 import styles from "./page.module.css";
 
