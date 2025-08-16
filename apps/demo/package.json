@@ -1,5 +1,5 @@
 {
-	"name": "demo",
+	"name": "@tollbooth/demo",
 	"version": "0.1.0",
 	"type": "module",
 	"private": true,
@@ -10,7 +10,7 @@
 		"check-types": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@repo/ui": "workspace:*",
+		"@tollbooth/ui": "workspace:*",
 		"@tailwindcss/cli": "^4.1.12",
 		"@tailwindcss/postcss": "^4.1.12",
 		"@tailwindcss/vite": "^4.0.0",
@@ -23,7 +23,7 @@
 		"x402-next": "^0.5.2"
 	},
 	"devDependencies": {
-		"@repo/typescript-config": "workspace:*",
+		"@tollbooth/typescript-config": "workspace:*",
 		"@types/node": "^22.15.3",
 		"@types/react": "19.1.0",
 		"@types/react-dom": "19.1.1",
