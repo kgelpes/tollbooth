@@ -1,4 +1,7 @@
-import { PAYWALL_TEMPLATE } from "./paywall/gen/template";
+import { PAYWALL_TEMPLATE } from "./x402/typescript/packages/x402/src/paywall/gen/template"
+//"./paywall/gen/template";
+// To generate the template go to: tollbooth/apps/pay-per-crawl-endpoints/custom-middleware/x402/typescript/packages/x402
+// and run `npm run build:paywall`
 import { config } from "./x402/typescript/packages/x402/src/types/shared/evm/config";
 import { PaymentRequirements } from "./x402/typescript/packages/x402/src/types/verify";
 

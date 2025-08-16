@@ -121,6 +121,7 @@ export function paymentMiddleware(
       resource,
       errorMessages,
       discoverable,
+      expirationTime
     } = config;
 
     const atomicAmountForAsset = processPriceToAtomicAmount(price, network);
@@ -154,11 +155,13 @@ export function paymentMiddleware(
           output: outputSchema,
         },
         extra: asset.eip712,
+        expirationTime: expirationTime
       },
     ];
 
     // Check for payment header
     const paymentHeader = request.headers.get("X-PAYMENT");
+    // const paymentHeader = "eyJ4NDAyVmVyc2lvbiI6MSwic2NoZW1lIjoiZXhhY3QiLCJuZXR3b3JrIjoiYmFzZS1zZXBvbGlhIiwicGF5bG9hZCI6eyJzaWduYXR1cmUiOiIweDY4MTJkYzM2ODEzNDMzNTI0ODc2M2FjMWM0M2I0MDIyODlhZWFhYWFkMGNjM2IwMjIyNjc0OTQ5MDc3YzVjZjgzYWYxMjU2ZGY2ZTA0ZDhkYzFiMjY0N2NmN2E0OWM1ZGMyYzUyNDVkMzU4MGZiYTFkYTMxODA3YzlmZTYzZTA2MWIiLCJhdXRob3JpemF0aW9uIjp7ImZyb20iOiIweDdBOEU3OWRFNjNjMjljM2VlMjM3NUNkM0QyZTkwRkVhQTVhQWYzMjIiLCJ0byI6IjB4M2FlRTgxMDhkMDQwOTBmNjhkMTZkMUFjOUJkOGU0NDU5RDM5MDAzZSIsInZhbHVlIjoiMTAwMCIsInZhbGlkQWZ0ZXIiOiIxNzU1MzcyMTA1IiwidmFsaWRCZWZvcmUiOiIxNzU1MzczMDA1Iiwibm9uY2UiOiIweDQ3YzExMWIyYjAwNmViMjdjN2IyMGUwYjJjNzkzNDgxNjVhNGQ5NzMzODgwMjFiMThiMDMxOTgxMzE2MTg4NmMifX19"
     if (!paymentHeader) {
       const accept = request.headers.get("Accept");
       if (accept?.includes("text/html")) {
@@ -246,6 +249,7 @@ export function paymentMiddleware(
       );
     }
 
+    // decodedPayment.payload.authorization.validBefore = "1755374005"
     const verification = await verify(decodedPayment, selectedPaymentRequirements);
 
     if (!verification.isValid) {
