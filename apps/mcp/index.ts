@@ -1,44 +1,123 @@
+#!/usr/bin/env node
 import { CdpClient } from "@coinbase/cdp-sdk";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import axios from "axios";
+import axios, { type AxiosInstance } from "axios";
 import { config } from "dotenv";
+import type {
+	Account,
+	Chain,
+	Client,
+	LocalAccount,
+	PublicActions,
+	RpcSchema,
+	Transport,
+	WalletActions,
+} from "viem";
+import { createWalletClient, http, publicActions } from "viem";
 import { toAccount } from "viem/accounts";
+import { base } from "viem/chains";
 import { withPaymentInterceptor } from "x402-axios";
 
-// Load environment variables and throw an error if any are missing
 config();
 
-const apiKeyId = process.env.CDP_API_KEY_ID as string | undefined;
-const apiKeySecret = process.env.CDP_API_KEY_SECRET as string | undefined;
-const walletSecret = process.env.CDP_WALLET_SECRET as string | undefined;
-const baseURL = process.env.RESOURCE_SERVER_URL as string; // e.g. https://example.com
-const endpointPath = process.env.ENDPOINT_PATH as string; // e.g. /weather
-
-if (!apiKeyId || !apiKeySecret || !walletSecret || !baseURL || !endpointPath) {
-	throw new Error("Missing environment variables");
+// Required env: User token to map to a server wallet name
+const userToken = process.env.TOLLBOOTH_API_KEY as string | undefined;
+if (!userToken) {
+	throw new Error("Missing TOLLBOOTH_API_KEY env var");
 }
 
-// Initialize CDP client and get or create the server wallet account
-const cdp = new CdpClient();
-const serverAccount = await cdp.evm.getOrCreateAccount({ name: "x402" });
-const account = toAccount(serverAccount);
+// Optional envs
+const DASHBOARD_BASE_URL =
+	(process.env.TOLLBOOTH_DASHBOARD_URL as string | undefined) ||
+	"http://localhost:3000";
 
-// Create an axios client with payment interceptor using x402-axios
-const client = withPaymentInterceptor(axios.create({ baseURL }), account);
+// Resolve and cache the account by user token
+const accountCache = new Map<string, Promise<ReturnType<typeof toAccount>>>();
+const getAccount = (apiKey: string): Promise<ReturnType<typeof toAccount>> => {
+	let existing = accountCache.get(apiKey);
+	if (!existing) {
+		existing = (async () => {
+			const cdp = new CdpClient();
+			const walletResponse = await fetch(
+				`${DASHBOARD_BASE_URL}/api/get-server-wallet?api_key=${encodeURIComponent(apiKey)}`,
+			);
+			if (!walletResponse.ok) {
+				throw new Error(
+					`Failed to resolve server wallet: ${walletResponse.status}`,
+				);
+			}
+			const walletData = (await walletResponse.json()) as { result: string };
+			const walletName = walletData.result;
+			const serverAccount = await cdp.evm.getOrCreateAccount({
+				name: walletName,
+			});
+			return toAccount(serverAccount);
+		})();
+		accountCache.set(apiKey, existing);
+	}
+	return existing;
+};
+
+// Cache axios clients per baseURL+token
+const clientCache = new Map<string, Promise<AxiosInstance>>();
+const getClientForBaseUrl = (
+	baseURL: string,
+	apiKey: string,
+): Promise<AxiosInstance> => {
+	const cacheKey = `${baseURL}:${apiKey}`;
+	let existing = clientCache.get(cacheKey);
+	if (!existing) {
+		existing = (async () => {
+			const account = await getAccount(apiKey);
+			const signer = createWalletClient({
+				account,
+				chain: base,
+				transport: http(),
+			}).extend(publicActions);
+			type ViemSignerWallet = Client<
+				Transport,
+				Chain,
+				Account,
+				RpcSchema,
+				PublicActions<Transport, Chain, Account> & WalletActions<Chain, Account>
+			>;
+			type X402Wallet = ViemSignerWallet | LocalAccount;
+			return withPaymentInterceptor(
+				axios.create({ baseURL }),
+				signer as unknown as X402Wallet,
+			);
+		})();
+		clientCache.set(cacheKey, existing);
+	}
+	return existing;
+};
 
 // Create an MCP server
 const server = new McpServer({
-	name: "x402 MCP Client Demo",
+	name: "tollbooth-mcp-proxy",
 	version: "1.0.0",
 });
 
-// Add an addition tool
 server.tool(
 	"get-data-from-resource-server",
-	"Get data from the resource server (in this example, the weather)", //change this description to change when the client calls the tool
-	{},
-	async () => {
+	"Get data from a resource server (pays via x402).",
+	{
+		resourceServerUrl: {
+			type: "string",
+			description: "URL of the resource server",
+		},
+		endpointPath: {
+			type: "string",
+			description: "Path to the endpoint on the resource server",
+		},
+	},
+	async (args: { resourceServerUrl?: string; endpointPath?: string }) => {
+		const { resourceServerUrl, endpointPath } = args;
+		if (!resourceServerUrl || !endpointPath) {
+			throw new Error("resourceServerUrl and endpointPath are required");
+		}
+		const client = await getClientForBaseUrl(resourceServerUrl, userToken);
 		const res = await client.get(endpointPath);
 		return {
 			content: [{ type: "text", text: JSON.stringify(res.data) }],

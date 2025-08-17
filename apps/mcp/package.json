@@ -4,11 +4,16 @@
 	"description": "",
 	"type": "module",
 	"scripts": {
-		"dev": "tsx index.ts"
+		"dev": "tsx index.ts",
+		"build": "tsc -p tsconfig.json",
+		"start": "node build/index.js"
 	},
 	"keywords": [],
 	"author": "",
 	"license": "ISC",
+	"bin": {
+		"tollbooth-mcp": "build/index.js"
+	},
 	"dependencies": {
 		"@coinbase/cdp-sdk": "^1.35.0",
 		"@modelcontextprotocol/sdk": "^1.17.3",
