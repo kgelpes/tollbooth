@@ -5639,14 +5639,11 @@ snapshots:
 
   '@hexagon/base64@1.1.28': {}
 
-<<<<<<< Updated upstream
-=======
   '@hookform/resolvers@5.2.1(react-hook-form@7.62.0(react@19.1.0))':
     dependencies:
       '@standard-schema/utils': 0.3.0
       react-hook-form: 7.62.0(react@19.1.0)
 
->>>>>>> Stashed changes
   '@hookform/resolvers@5.2.1(react-hook-form@7.62.0(react@19.1.1))':
     dependencies:
       '@standard-schema/utils': 0.3.0
