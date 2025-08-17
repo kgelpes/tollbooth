@@ -1,12 +1,33 @@
 import { Button } from "@tollbooth/ui/button";
 import { useState } from "react";
+import { useBalance } from "wagmi";
+import { useOnramp } from "../../hooks/useOnramp";
 import { useServerWallet } from "../../hooks/useServerWallet";
+import { FundWithWalletButton } from "./fund-with-wallet-button";
 import type { StepProps } from "./types";
+
+const USDC_ADDRESS = "0x036CbD53842c5426634e7929541eC2318f3dCF7e" as const;
 
 export function PaymentSetup(_: StepProps) {
 	const { address, isLoading, isError, error, create, isCreating } =
 		useServerWallet();
 	const [copied, setCopied] = useState(false);
+	const {
+		open,
+		isOpening,
+		isError: isOnrampError,
+		error: onrampError,
+	} = useOnramp();
+
+	const nativeBalance = useBalance({
+		address: (address as `0x${string}`) || undefined,
+		query: { enabled: Boolean(address) },
+	});
+	const usdcBalance = useBalance({
+		address: (address as `0x${string}`) || undefined,
+		token: USDC_ADDRESS,
+		query: { enabled: Boolean(address) },
+	});
 
 	const copyAddress = async () => {
 		if (!address) return;
@@ -46,7 +67,39 @@ export function PaymentSetup(_: StepProps) {
 									<Button variant="outline" size="sm" onClick={copyAddress}>
 										{copied ? "Copied" : "Copy"}
 									</Button>
+									<Button
+										size="sm"
+										onClick={() =>
+											open({
+												assets: ["USDC"],
+												defaultNetwork: "base",
+												presetFiatAmount: 25,
+											})
+										}
+										disabled={!address || isOpening}
+									>
+										{isOpening ? "Opening…" : "Fund via Coinbase Onramp"}
+									</Button>
 								</div>
+								<div className="text-sm text-muted-foreground">
+									Balance:{" "}
+									{nativeBalance.isLoading
+										? "…"
+										: (nativeBalance.data?.formatted ?? "0")}{" "}
+									{nativeBalance.data?.symbol ?? "ETH"}
+								</div>
+								<div className="text-sm text-muted-foreground">
+									USDC:{" "}
+									{usdcBalance.isLoading
+										? "…"
+										: (usdcBalance.data?.formatted ?? "0")}{" "}
+									{usdcBalance.data?.symbol ?? "USDC"}
+								</div>
+								<FundWithWalletButton
+									to={address as `0x${string}`}
+									tokenAddress={USDC_ADDRESS}
+									amount={5}
+								/>
 							</div>
 						) : (
 							<div className="space-y-3">
@@ -60,6 +113,9 @@ export function PaymentSetup(_: StepProps) {
 						)}
 						{isError && (
 							<div className="mt-2 text-sm text-red-600">{error}</div>
+						)}
+						{isOnrampError && (
+							<div className="mt-2 text-sm text-red-600">{onrampError}</div>
 						)}
 					</div>
 
