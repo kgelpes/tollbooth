@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { PublisherOnboarding } from "../../../components/publisher-onboarding";
+import { PublisherOnboarding } from "../../../components/publisher-onboarding/publisher-onboarding";
 
 export default function PublisherOnboardingPage() {
 	const searchParams = useSearchParams();

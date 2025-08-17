@@ -198,9 +198,15 @@ importers:
 
   apps/web:
     dependencies:
+      '@hookform/resolvers':
+        specifier: ^5.2.1
+        version: 5.2.1(react-hook-form@7.62.0(react@19.1.0))
       '@supabase/ssr':
         specifier: ^0.6.1
         version: 0.6.1(@supabase/supabase-js@2.55.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))
+      '@supabase/supabase-js':
+        specifier: ^2.55.0
+        version: 2.55.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
       '@tailwindcss/cli':
         specifier: ^4.1.12
         version: 4.1.12
@@ -240,6 +246,9 @@ importers:
       react-dom:
         specifier: ^19.1.0
         version: 19.1.0(react@19.1.0)
+      react-hook-form:
+        specifier: ^7.62.0
+        version: 7.62.0(react@19.1.0)
       siwe:
         specifier: ^3.0.0
         version: 3.0.0(ethers@6.15.0(bufferutil@4.0.9)(utf-8-validate@5.0.10))
@@ -252,10 +261,10 @@ importers:
       wagmi:
         specifier: ^2.16.3
         version: 2.16.3(@tanstack/query-core@5.85.3)(@tanstack/react-query@5.85.3(react@19.1.0))(@types/react@19.1.0)(bufferutil@4.0.9)(react@19.1.0)(typescript@5.9.2)(utf-8-validate@5.0.10)(viem@2.33.3(bufferutil@4.0.9)(typescript@5.9.2)(utf-8-validate@5.0.10)(zod@4.0.17))(zod@4.0.17)
+      zod:
+        specifier: ^4.0.17
+        version: 4.0.17
     devDependencies:
-      '@supabase/supabase-js':
-        specifier: ^2.55.0
-        version: 2.55.0(bufferutil@4.0.9)(utf-8-validate@5.0.10)
       '@tollbooth/typescript-config':
         specifier: workspace:*
         version: link:../../packages/typescript-config
@@ -5630,6 +5639,14 @@ snapshots:
 
   '@hexagon/base64@1.1.28': {}
 
+<<<<<<< Updated upstream
+=======
+  '@hookform/resolvers@5.2.1(react-hook-form@7.62.0(react@19.1.0))':
+    dependencies:
+      '@standard-schema/utils': 0.3.0
+      react-hook-form: 7.62.0(react@19.1.0)
+
+>>>>>>> Stashed changes
   '@hookform/resolvers@5.2.1(react-hook-form@7.62.0(react@19.1.1))':
     dependencies:
       '@standard-schema/utils': 0.3.0
@@ -11511,6 +11528,10 @@ snapshots:
     dependencies:
       react: 19.1.1
       scheduler: 0.26.0
+
+  react-hook-form@7.62.0(react@19.1.0):
+    dependencies:
+      react: 19.1.0
 
   react-hook-form@7.62.0(react@19.1.1):
     dependencies:
