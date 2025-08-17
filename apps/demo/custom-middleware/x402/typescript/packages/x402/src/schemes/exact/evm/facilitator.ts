@@ -14,7 +14,7 @@ import {
   SettleResponse,
   VerifyResponse,
 } from "../../../types/verify";
-import { SCHEME } from "../../exact";
+import { SCHEME } from "..";
 
 /**
  * Verifies a payment payload against the required payment details
