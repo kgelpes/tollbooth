@@ -1,7 +1,6 @@
 import { CdpClient } from "@coinbase/cdp-sdk";
 import axios, { type AxiosInstance } from "axios";
 import { createMcpHandler } from "mcp-handler";
-import type { NextRequest } from "next/server";
 import type {
   Account,
   Chain,
@@ -101,7 +100,7 @@ let defaultApiKey: string | undefined = process.env.TOLLBOOTH_API_KEY;
 // Temporary demo mechanism: capture a default API key from the MCP URL query
 // (?apiKey or ?api_key) or from env. In production, prefer a proper
 // authenticated per-user configuration rather than query parameters.
-const updateDefaultApiKeyFromRequest = (req: NextRequest): void => {
+const updateDefaultApiKeyFromRequest = (req: Request): void => {
   const url = new URL(req.url);
   const fromQuery =
     url.searchParams.get("apiKey") ?? url.searchParams.get("api_key");
@@ -116,10 +115,6 @@ const handler = createMcpHandler(
 			"get-data-from-resource-server",
       "Get data from a resource server (pays via x402).",
       {
-        apiKey: {
-          type: "string",
-          description: "API key for server wallet authentication",
-        },
         resourceServerUrl: {
           type: "string",
           description: "URL of the resource server",
@@ -129,15 +124,11 @@ const handler = createMcpHandler(
           description: "Path to the endpoint on the resource server",
         },
       },
-      async (args: {
-        apiKey?: string;
-        resourceServerUrl?: string;
-        endpointPath?: string;
-      }) => {
-        const { apiKey, resourceServerUrl, endpointPath } = args;
+      async (args: { resourceServerUrl?: string; endpointPath?: string }) => {
+        const { resourceServerUrl, endpointPath } = args;
         // If tool input omits apiKey, fall back to key captured from URL/env.
         // This is a temporary approach for the demo.
-        const resolvedApiKey = apiKey ?? defaultApiKey;
+        const resolvedApiKey = defaultApiKey;
         if (!resolvedApiKey) {
           throw new Error(
             "apiKey is required (pass as tool param or set via MCP URL ?apiKey=... or env TOLLBOOTH_API_KEY)",
@@ -146,10 +137,7 @@ const handler = createMcpHandler(
         if (!resourceServerUrl || !endpointPath) {
           throw new Error("resourceServerUrl and endpointPath are required");
         }
-        const client = await getClientForBaseUrl(
-          resourceServerUrl,
-          resolvedApiKey,
-        );
+        const client = await getClientForBaseUrl(resourceServerUrl, resolvedApiKey);
         const res = await client.get(endpointPath);
 				return {
           content: [{ type: "text", text: JSON.stringify(res.data) }],
@@ -161,20 +149,19 @@ const handler = createMcpHandler(
 	{ basePath: "/api" },
 );
 
-export async function GET(req: NextRequest, ctx: unknown) {
+const typedHandler = handler as unknown as (req: Request) => Promise<Response>;
+
+export async function GET(req: Request) {
   updateDefaultApiKeyFromRequest(req);
-  // @ts-expect-error - handler conforms to Next.js route handler signature
-  return handler(req, ctx);
+  return typedHandler(req);
 }
 
-export async function POST(req: NextRequest, ctx: unknown) {
+export async function POST(req: Request) {
   updateDefaultApiKeyFromRequest(req);
-  // @ts-expect-error - handler conforms to Next.js route handler signature
-  return handler(req, ctx);
+  return typedHandler(req);
 }
 
-export async function DELETE(req: NextRequest, ctx: unknown) {
+export async function DELETE(req: Request) {
   updateDefaultApiKeyFromRequest(req);
-  // @ts-expect-error - handler conforms to Next.js route handler signature
-  return handler(req, ctx);
+  return typedHandler(req);
 }
