@@ -13,7 +13,7 @@ import type {
   WalletActions,
 } from "viem";
 import { createWalletClient, http, publicActions } from "viem";
-import { toAccount } from "viem/accounts";
+import { privateKeyToAccount, toAccount } from "viem/accounts";
 import { base } from "viem/chains";
 import { withPaymentInterceptor } from "x402-axios";
 
@@ -30,39 +30,67 @@ const requiredEnvKeys: RequiredEnvKey[] = [
   "CDP_WALLET_SECRET",
 ];
 
-const requestContext = new AsyncLocalStorage<{ apiKey: string }>();
+const requestContext = new AsyncLocalStorage<{
+  apiKey: string;
+  origin?: string;
+}>();
 const getCurrentApiKey = (): string => {
   const store = requestContext.getStore();
   return store?.apiKey ?? "demo";
 };
+const getCurrentOrigin = (): string | undefined => {
+  const store = requestContext.getStore();
+  return store?.origin;
+};
 
-const accountCache = new Map<string, Promise<ReturnType<typeof toAccount>>>();
-const getAccount = (): Promise<ReturnType<typeof toAccount>> => {
+type SupportedAccount = ReturnType<typeof toAccount> | LocalAccount;
+const accountCache = new Map<string, Promise<SupportedAccount>>();
+const getAccount = (): Promise<SupportedAccount> => {
   const apiKey = getCurrentApiKey();
   let existing = accountCache.get(apiKey);
   if (!existing) {
     existing = (async () => {
-      for (const key of requiredEnvKeys) {
-        if (!process.env[key]) {
-          throw new Error(`Missing required environment variable: ${key}`);
-        }
-      }
-
-      // Fetch wallet name from get-server-wallet endpoint
-      const walletResponse = await fetch(
-        `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/get-server-wallet?api_key=${encodeURIComponent(apiKey)}`,
+      const hasAllCdpEnv = requiredEnvKeys.every((k) =>
+        Boolean(process.env[k]),
       );
-      let walletName = "x402";
-      if (walletResponse.ok) {
-        const walletData = await walletResponse.json();
-        walletName = walletData.result ?? walletName;
+      const privateKey =
+        process.env.PRIVATE_KEY ||
+        process.env.RESOURCE_SIGNER_PRIVATE_KEY ||
+        "";
+
+      // Preferred: use Coinbase CDP server wallet when env is configured
+      if (hasAllCdpEnv) {
+        // Fetch wallet name from get-server-wallet endpoint
+        const origin = getCurrentOrigin();
+        const base =
+          origin || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+        const walletResponse = await fetch(
+          `${base}/api/get-server-wallet?api_key=${encodeURIComponent(apiKey)}`,
+        );
+        let walletName = "x402";
+        if (walletResponse.ok) {
+          const walletData = await walletResponse.json();
+          walletName = walletData.result ?? walletName;
+        }
+
+        const cdp = new CdpClient();
+        const serverAccount = await cdp.evm.getOrCreateAccount({
+          name: walletName,
+        });
+        return toAccount(serverAccount);
       }
 
-      const cdp = new CdpClient();
-      const serverAccount = await cdp.evm.getOrCreateAccount({
-        name: walletName,
-      });
-      return toAccount(serverAccount);
+      // Fallback: use a local private key signer when CDP env is not present
+      if (privateKey) {
+        const normalized = privateKey.startsWith("0x")
+          ? privateKey
+          : `0x${privateKey}`;
+        return privateKeyToAccount(normalized as `0x${string}`);
+      }
+
+      throw new Error(
+        "No signer configured. Provide CDP credentials (CDP_API_KEY_ID, CDP_API_KEY_SECRET, CDP_WALLET_SECRET) or a PRIVATE_KEY.",
+      );
     })();
     accountCache.set(apiKey, existing);
   }
@@ -116,9 +144,18 @@ const handler = createMcpHandler(
         },
       },
       async (args: { resourceServerUrl?: string; endpointPath?: string }) => {
-        const { resourceServerUrl, endpointPath } = args;
-        if (!resourceServerUrl || !endpointPath) {
-          throw new Error("resourceServerUrl and endpointPath are required");
+        let { resourceServerUrl, endpointPath } = args;
+        resourceServerUrl =
+          resourceServerUrl ||
+          process.env.RESOURCE_SERVER_URL ||
+          process.env.NEXT_PUBLIC_RESOURCE_SERVER_URL ||
+          "";
+        endpointPath =
+          endpointPath || process.env.ENDPOINT_PATH || "/protected";
+        if (!resourceServerUrl) {
+          throw new Error(
+            "resourceServerUrl is required (pass as arg or set RESOURCE_SERVER_URL env)",
+          );
         }
         const client = await getClientForBaseUrl(resourceServerUrl);
         const res = await client.get(endpointPath);
@@ -152,29 +189,61 @@ const typedAuthHandler = authHandler as unknown as (
   req: Request,
 ) => Promise<Response>;
 
-export async function GET(req: Request) {
+function extractToken(req: Request): string {
   const authHeader =
     req.headers.get("authorization") ?? req.headers.get("Authorization");
-  const token = authHeader?.startsWith("Bearer ")
-    ? authHeader.slice("Bearer ".length).trim()
-    : "demo";
-  return requestContext.run({ apiKey: token }, () => typedAuthHandler(req));
+  if (authHeader?.startsWith("Bearer ")) {
+    return authHeader.slice("Bearer ".length).trim();
+  }
+  try {
+    const url = new URL(req.url);
+    const qp =
+      url.searchParams.get("apiKey") || url.searchParams.get("api_key");
+    if (qp && qp.trim().length > 0) return qp.trim();
+  } catch {
+    // ignore
+  }
+  return "demo";
+}
+
+export async function GET(req: Request) {
+  const token = extractToken(req);
+  const origin = (() => {
+    try {
+      return new URL(req.url).origin;
+    } catch {
+      return undefined;
+    }
+  })();
+  return requestContext.run({ apiKey: token, origin }, () =>
+    typedAuthHandler(req),
+  );
 }
 
 export async function POST(req: Request) {
-  const authHeader =
-    req.headers.get("authorization") ?? req.headers.get("Authorization");
-  const token = authHeader?.startsWith("Bearer ")
-    ? authHeader.slice("Bearer ".length).trim()
-    : "demo";
-  return requestContext.run({ apiKey: token }, () => typedAuthHandler(req));
+  const token = extractToken(req);
+  const origin = (() => {
+    try {
+      return new URL(req.url).origin;
+    } catch {
+      return undefined;
+    }
+  })();
+  return requestContext.run({ apiKey: token, origin }, () =>
+    typedAuthHandler(req),
+  );
 }
 
 export async function DELETE(req: Request) {
-  const authHeader =
-    req.headers.get("authorization") ?? req.headers.get("Authorization");
-  const token = authHeader?.startsWith("Bearer ")
-    ? authHeader.slice("Bearer ".length).trim()
-    : "demo";
-  return requestContext.run({ apiKey: token }, () => typedAuthHandler(req));
+  const token = extractToken(req);
+  const origin = (() => {
+    try {
+      return new URL(req.url).origin;
+    } catch {
+      return undefined;
+    }
+  })();
+  return requestContext.run({ apiKey: token, origin }, () =>
+    typedAuthHandler(req),
+  );
 }
