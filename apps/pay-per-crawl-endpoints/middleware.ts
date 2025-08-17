@@ -13,7 +13,6 @@ export const middleware = paymentMiddleware(
 			network,
 			config: {
 				description: "Access to protected content",
-				customPaywallHtml: "<h1>Ciao</h1>",
 				maxTimeoutSeconds: 3000,
 				expirationTime: 5 * 60 * 1000,
 			},

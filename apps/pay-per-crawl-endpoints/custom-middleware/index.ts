@@ -9,7 +9,7 @@ import {
   processPriceToAtomicAmount,
   toJsonSafe,
 } from "x402/shared";
-import {getPaywallHtml} from "./paywall"
+import { getPaywallHtml } from "./paywall"
 import {
   FacilitatorConfig,
   moneySchema,
@@ -178,26 +178,30 @@ export function paymentMiddleware(
           } else {
             displayAmount = Number(price.amount) / 10 ** price.asset.decimals;
           }
-          
+
           // customPaywallHtml should only be shown if the captcha hasn't previously failed
 
           let html;
+          /*
           if(captcha == "fail"){
-            html = getPaywallHtml({
-              amount: displayAmount,
-              paymentRequirements: toJsonSafe(paymentRequirements) as Parameters<
-                typeof getPaywallHtml
-              >[0]["paymentRequirements"],
-              currentUrl: request.url,
-              testnet: network === "base-sepolia",
-              cdpClientKey: paywall?.cdpClientKey,
-              appLogo: paywall?.appLogo,
-              appName: paywall?.appName,
-              sessionTokenEndpoint: paywall?.sessionTokenEndpoint,
-            });
+            
           } else {
             html = customPaywallHtml;
           }
+          */
+
+          html = getPaywallHtml({
+            amount: displayAmount,
+            paymentRequirements: toJsonSafe(paymentRequirements) as Parameters<
+              typeof getPaywallHtml
+            >[0]["paymentRequirements"],
+            currentUrl: request.url,
+            testnet: network === "base-sepolia",
+            cdpClientKey: paywall?.cdpClientKey,
+            appLogo: paywall?.appLogo,
+            appName: paywall?.appName,
+            sessionTokenEndpoint: paywall?.sessionTokenEndpoint,
+          });
 
           return new NextResponse(html, {
             status: 402,
