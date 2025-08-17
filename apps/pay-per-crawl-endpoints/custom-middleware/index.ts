@@ -1,28 +1,28 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { Address, getAddress } from "viem";
+import { type Address, getAddress } from "viem";
 import { exact } from "x402/schemes";
 import {
   computeRoutePatterns,
   findMatchingPaymentRequirements,
   findMatchingRoute,
   processPriceToAtomicAmount,
+  safeBase64Encode,
   toJsonSafe,
 } from "x402/shared";
-import { getPaywallHtml } from "./paywall"
 import {
-  FacilitatorConfig,
+  type FacilitatorConfig,
   moneySchema,
-  PaymentPayload,
-  PaymentRequirements,
-  Resource,
-  RoutesConfig,
-  PaywallConfig,
+  type PaymentMiddlewareConfig,
+  type PaymentPayload,
+  type PaymentRequirements,
+  type PaywallConfig,
+  type Resource,
+  type RoutesConfig,
 } from "x402/types";
 import { useFacilitator } from "x402/verify";
-import { safeBase64Encode } from "x402/shared";
-
 import { POST } from "./api/session-token";
+import { getPaywallHtml } from "./paywall";
 
 /**
  * Creates a payment middleware factory for Next.js
@@ -120,9 +120,7 @@ export function paymentMiddleware(
       customPaywallHtml,
       resource,
       errorMessages,
-      discoverable,
-      expirationTime
-    } = config;
+    } = config as PaymentMiddlewareConfig;
 
     const atomicAmountForAsset = processPriceToAtomicAmount(price, network);
     if ("error" in atomicAmountForAsset) {
@@ -131,7 +129,8 @@ export function paymentMiddleware(
     const { maxAmountRequired, asset } = atomicAmountForAsset;
 
     const resourceUrl =
-      resource || (`${request.nextUrl.protocol}//${request.nextUrl.host}${pathname}` as Resource);
+      resource ||
+      (`${request.nextUrl.protocol}//${request.nextUrl.host}${pathname}` as Resource);
 
     const paymentRequirements: PaymentRequirements[] = [
       {
@@ -149,13 +148,11 @@ export function paymentMiddleware(
           input: {
             type: "http",
             method,
-            discoverable: discoverable ?? true,
             ...inputSchema,
           },
           output: outputSchema,
         },
         extra: asset.eip712,
-        expirationTime: expirationTime
       },
     ];
 
@@ -182,7 +179,7 @@ export function paymentMiddleware(
           // customPaywallHtml should only be shown if the captcha hasn't previously failed
 
           let html;
-          /*
+					/*
           if(captcha == "fail"){
             
           } else {
@@ -213,7 +210,8 @@ export function paymentMiddleware(
       return new NextResponse(
         JSON.stringify({
           x402Version,
-          error: errorMessages?.paymentRequired || "X-PAYMENT header is required",
+          error:
+            errorMessages?.paymentRequired || "X-PAYMENT header is required",
           accepts: paymentRequirements,
         }),
         { status: 402, headers: { "Content-Type": "application/json" } },
@@ -230,7 +228,8 @@ export function paymentMiddleware(
         JSON.stringify({
           x402Version,
           error:
-            errorMessages?.invalidPayment || (error instanceof Error ? error : "Invalid payment"),
+            errorMessages?.invalidPayment ||
+            (error instanceof Error ? error : "Invalid payment"),
           accepts: paymentRequirements,
         }),
         { status: 402, headers: { "Content-Type": "application/json" } },
@@ -246,7 +245,8 @@ export function paymentMiddleware(
         JSON.stringify({
           x402Version,
           error:
-            errorMessages?.noMatchingRequirements || "Unable to find matching payment requirements",
+            errorMessages?.noMatchingRequirements ||
+            "Unable to find matching payment requirements",
           accepts: toJsonSafe(paymentRequirements),
         }),
         { status: 402, headers: { "Content-Type": "application/json" } },
@@ -254,13 +254,17 @@ export function paymentMiddleware(
     }
 
     // decodedPayment.payload.authorization.validBefore = "1755374005"
-    const verification = await verify(decodedPayment, selectedPaymentRequirements);
+    const verification = await verify(
+      decodedPayment,
+      selectedPaymentRequirements,
+    );
 
     if (!verification.isValid) {
       return new NextResponse(
         JSON.stringify({
           x402Version,
-          error: errorMessages?.verificationFailed || verification.invalidReason,
+          error:
+            errorMessages?.verificationFailed || verification.invalidReason,
           accepts: paymentRequirements,
           payer: verification.payer,
         }),
@@ -278,7 +282,10 @@ export function paymentMiddleware(
 
     // Settle payment after response
     try {
-      const settlement = await settle(decodedPayment, selectedPaymentRequirements);
+      const settlement = await settle(
+        decodedPayment,
+        selectedPaymentRequirements,
+      );
 
       if (settlement.success) {
         response.headers.set(

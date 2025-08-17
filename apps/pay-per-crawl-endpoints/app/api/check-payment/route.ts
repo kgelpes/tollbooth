@@ -1,10 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { type NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,9 +9,15 @@ export async function POST(request: NextRequest) {
     if (!pathname || !address) {
       return NextResponse.json(
         { success: false, error: "Missing pathname or address" },
-        { status: 400 }
+        { status: 400 },
       );
     }
+
+    // Create Supabase client inside the function to avoid build-time issues
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    );
 
     // Query with date constraint in SQL
     const { data, error } = await supabase
@@ -30,7 +31,10 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error("Supabase error:", error);
-      return NextResponse.json({ success: false, error: "Database error" }, { status: 500 });
+      return NextResponse.json(
+        { success: false, error: "Database error" },
+        { status: 500 },
+      );
     }
 
     if (data && data.length > 0) {
@@ -40,6 +44,9 @@ export async function POST(request: NextRequest) {
     }
   } catch (err) {
     console.error("Handler error:", err);
-    return NextResponse.json({ success: false, error: "Invalid request" }, { status: 400 });
+    return NextResponse.json(
+      { success: false, error: "Invalid request" },
+      { status: 400 },
+    );
   }
 }

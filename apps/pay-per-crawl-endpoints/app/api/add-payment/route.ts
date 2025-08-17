@@ -1,10 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+import { type NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,28 +8,53 @@ export async function POST(request: NextRequest) {
 
     if (!address || !pathname || !expiration_date) {
       return NextResponse.json(
-        { success: false, error: "Missing address, pathname, or expiration_date" },
-        { status: 400 }
+        {
+          success: false,
+          error: "Missing address, pathname, or expiration_date",
+        },
+        { status: 400 },
       );
     }
 
+    // Create Supabase client inside the function to avoid build-time issues
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    );
+
     // Insert into Supabase
-    const { data, error } = await supabase.from("payments").insert([
-      {
-        payer_address: address,
-        resource: pathname,
-        expires_at: new Date(expiration_date).toISOString(),
-      },
-    ]);
+    const { data, error } = await supabase
+      .from("payments")
+      .insert([
+        {
+          payer_address: address,
+          resource: pathname,
+          expires_at: new Date(expiration_date).toISOString(),
+        },
+      ])
+      .select();
 
     if (error) {
       console.error("Supabase insert error:", error);
-      return NextResponse.json({ success: false, error: "Database insert error" }, { status: 500 });
+      return NextResponse.json(
+        { success: false, error: "Database insert error" },
+        { status: 500 },
+      );
+    }
+
+    if (!data || data.length === 0) {
+      return NextResponse.json(
+        { success: false, error: "No data returned from insert" },
+        { status: 500 },
+      );
     }
 
     return NextResponse.json({ success: true, payment: data[0] });
   } catch (err) {
     console.error("Handler error:", err);
-    return NextResponse.json({ success: false, error: "Invalid request" }, { status: 400 });
+    return NextResponse.json(
+      { success: false, error: "Invalid request" },
+      { status: 400 },
+    );
   }
 }

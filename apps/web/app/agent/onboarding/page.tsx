@@ -1,9 +1,10 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import { AgentOnboarding } from "../../../components/agent-onboarding/agent-onboarding";
 
-export default function AgentOnboardingPage() {
+function AgentOnboardingContent() {
 	const searchParams = useSearchParams();
 	const router = useRouter();
 
@@ -27,5 +28,13 @@ export default function AgentOnboardingPage() {
 			onComplete={handleComplete}
 			onSkip={handleSkip}
 		/>
+	);
+}
+
+export default function AgentOnboardingPage() {
+	return (
+		<Suspense fallback={<div>Loading...</div>}>
+			<AgentOnboardingContent />
+		</Suspense>
 	);
 }

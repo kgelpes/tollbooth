@@ -1,9 +1,10 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import { PublisherOnboarding } from "../../../components/publisher-onboarding/publisher-onboarding";
 
-export default function PublisherOnboardingPage() {
+function PublisherOnboardingContent() {
 	const searchParams = useSearchParams();
 	const router = useRouter();
 
@@ -27,5 +28,13 @@ export default function PublisherOnboardingPage() {
 			onComplete={handleComplete}
 			onSkip={handleSkip}
 		/>
+	);
+}
+
+export default function PublisherOnboardingPage() {
+	return (
+		<Suspense fallback={<div>Loading...</div>}>
+			<PublisherOnboardingContent />
+		</Suspense>
 	);
 }
