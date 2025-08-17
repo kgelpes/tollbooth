@@ -7,6 +7,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      '@coinbase/cdp-sdk':
+        specifier: ^1.35.0
+        version: 1.35.0(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.2)(utf-8-validate@5.0.10)
     devDependencies:
       '@biomejs/biome':
         specifier: ^2.2.0
@@ -103,6 +107,9 @@ importers:
 
   apps/mcp:
     dependencies:
+      '@coinbase/cdp-sdk':
+        specifier: ^1.35.0
+        version: 1.35.0(bufferutil@4.0.9)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.9.2)(utf-8-validate@5.0.10)
       '@modelcontextprotocol/sdk':
         specifier: ^1.17.3
         version: 1.17.3
