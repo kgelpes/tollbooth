@@ -11,10 +11,11 @@
 	},
 	"dependencies": {
 		"@coinbase/cdp-sdk": "^1.35.0",
-		"@tollbooth/ui": "workspace:*",
+		"@supabase/supabase-js": "^2.55.0",
 		"@tailwindcss/cli": "^4.1.12",
 		"@tailwindcss/postcss": "^4.1.12",
 		"@tailwindcss/vite": "^4.0.0",
+		"@tollbooth/ui": "workspace:*",
 		"auth": "link:@coinbase/cdp-sdk/auth",
 		"next": "^15.4.2",
 		"postcss": "^8.5.6",

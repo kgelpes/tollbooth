@@ -12,7 +12,13 @@ import {
 import { Input } from "@tollbooth/ui/components/input";
 import { Label } from "@tollbooth/ui/components/label";
 import { Progress } from "@tollbooth/ui/components/progress";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@tollbooth/ui/components/select";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@tollbooth/ui/components/select";
 import {
 	ArrowRight,
 	Bot,
@@ -21,10 +27,10 @@ import {
 	Copy,
 	ExternalLink,
 	Shield,
-	Wallet,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+
 
 interface AgentOnboardingProps {
 	onComplete: () => void;
@@ -111,24 +117,15 @@ export function AgentOnboarding({
 				return (
 					<div className="space-y-6">
 						<div className="text-center space-y-2">
-							<div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
-								<Wallet className="w-8 h-8 text-primary" />
-							</div>
-							<h2 className="text-2xl font-semibold">Wallet Setup</h2>
-							<p className="text-muted-foreground">
-								Connect your wallet for automatic payments
-							</p>
+							<div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto" />
+							<h2 className="text-2xl font-semibold">Payment Setup</h2>
+							<p className="text-muted-foreground">Configure payment options</p>
 						</div>
 
 						<div className="space-y-4">
 							<div className="text-center space-y-4">
-								<div className="p-6 border-2 border-dashed rounded-lg">
-									<Wallet className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-									<h4 className="font-medium">No wallet connected</h4>
-									<p className="text-sm text-muted-foreground mb-4">
-										Connect your wallet to enable automatic payments
-									</p>
-									<Button>Connect Wallet</Button>
+								<div className="p-6 border-2 border-dashed rounded-lg text-sm text-muted-foreground">
+									Payment connector will appear here.
 								</div>
 
 								<div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg text-left">

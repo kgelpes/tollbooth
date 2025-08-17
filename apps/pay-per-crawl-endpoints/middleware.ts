@@ -19,6 +19,8 @@ export const middleware = paymentMiddleware(
 			config: {
 				description: "Access to protected content",
 				customPaywallHtml: captchaPaywallHtml,
+				maxTimeoutSeconds: 3000,
+				expirationTime: 5 * 60 * 1000,
 			},
 		},
 	},
