@@ -38,6 +38,25 @@ CDP_API_KEY_SECRET=xxx
 CDP_WALLET_SECRET=xxx
 ```
 
+mcp.json:
+
+{
+  "mcpServers": {
+    "testing": {
+      "command": "pnpm",
+      "args": [
+        "-C",
+        "/Users/ajrafmannan/Downloads/mcp_deploy", // replace with absolute path
+        "mcp"
+      ],
+      "env": {
+        "API_ENDPOINT_PATH": "/protected",
+        "MCP_HTTP_BASE_URL": "https://x402-mcp-server.fly.dev" // change this to our deployed url
+
+      }
+    }
+  } }
+  
 -----
 
 ## Captcha Web App
