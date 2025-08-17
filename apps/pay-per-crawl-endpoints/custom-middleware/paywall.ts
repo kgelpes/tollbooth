@@ -69,10 +69,7 @@ export function getPaywallHtml({
       testnet: ${testnet},
       currentUrl: "${escapeString(currentUrl)}",
       config: {
-        chainConfig: ${JSON.stringify({
-					[base.id]: getUsdcChainConfigForChain(base.id),
-					[baseSepolia.id]: getUsdcChainConfigForChain(baseSepolia.id),
-				})},
+        chainConfig: ${JSON.stringify(config)},
       },
       cdpClientKey: "${escapeString(cdpClientKey || "")}",
       appName: "${escapeString(appName || "")}",
