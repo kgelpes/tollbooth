@@ -4,9 +4,16 @@ import { Pool } from "pg";
 import { verifyMessage } from "viem";
 
 function generateNonce(): string {
-	const array = new Uint8Array(16);
-	globalThis.crypto.getRandomValues(array);
-	return Buffer.from(array).toString("base64url");
+	if (typeof globalThis.crypto?.randomUUID === "function") {
+		return globalThis.crypto.randomUUID().replaceAll("-", "");
+	}
+	const bytes = new Uint8Array(16);
+	globalThis.crypto.getRandomValues(bytes);
+	let hex = "";
+	for (const byte of bytes) {
+		hex += byte.toString(16).padStart(2, "0");
+	}
+	return hex;
 }
 
 export const auth = betterAuth({
@@ -17,8 +24,14 @@ export const auth = betterAuth({
 		admin(),
 		anonymous(),
 		siwe({
-			domain: process.env.NEXT_PUBLIC_APP_DOMAIN ?? "localhost",
-			emailDomainName: process.env.NEXT_PUBLIC_APP_DOMAIN ?? "localhost",
+			domain:
+				process.env.NEXT_PUBLIC_APP_DOMAIN ??
+				process.env.VERCEL_URL ??
+				"localhost",
+			emailDomainName:
+				process.env.NEXT_PUBLIC_APP_DOMAIN ??
+				process.env.VERCEL_URL ??
+				"localhost",
 			anonymous: true,
 			getNonce: async () => {
 				return generateNonce();

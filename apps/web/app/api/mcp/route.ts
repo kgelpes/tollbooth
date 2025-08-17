@@ -1,6 +1,7 @@
 import { CdpClient } from "@coinbase/cdp-sdk";
 import axios, { type AxiosInstance } from "axios";
 import { createMcpHandler } from "mcp-handler";
+import type { NextRequest } from "next/server";
 import type {
   Account,
   Chain,
@@ -41,15 +42,21 @@ const getAccount = (apiKey: string): Promise<ReturnType<typeof toAccount>> => {
       }
 
       // Fetch wallet name from get-server-wallet endpoint
-      const walletResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/get-server-wallet?api_key=${encodeURIComponent(apiKey)}`);
+      const walletResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/get-server-wallet?api_key=${encodeURIComponent(apiKey)}`,
+      );
       if (!walletResponse.ok) {
-        throw new Error(`Failed to get server wallet: ${walletResponse.status}`);
+        throw new Error(
+          `Failed to get server wallet: ${walletResponse.status}`,
+        );
       }
       const walletData = await walletResponse.json();
       const walletName = walletData.result;
 
       const cdp = new CdpClient();
-      const serverAccount = await cdp.evm.getOrCreateAccount({ name: walletName });
+      const serverAccount = await cdp.evm.getOrCreateAccount({
+        name: walletName,
+      });
       return toAccount(serverAccount);
     })();
     accountCache.set(apiKey, existing);
@@ -58,7 +65,10 @@ const getAccount = (apiKey: string): Promise<ReturnType<typeof toAccount>> => {
 };
 
 const clientCache = new Map<string, Promise<AxiosInstance>>();
-const getClientForBaseUrl = (baseURL: string, apiKey: string): Promise<AxiosInstance> => {
+const getClientForBaseUrl = (
+  baseURL: string,
+  apiKey: string,
+): Promise<AxiosInstance> => {
   const cacheKey = `${baseURL}:${apiKey}`;
   let existing = clientCache.get(cacheKey);
   if (!existing) {
@@ -87,6 +97,19 @@ const getClientForBaseUrl = (baseURL: string, apiKey: string): Promise<AxiosInst
   return existing;
 };
 
+let defaultApiKey: string | undefined = process.env.TOLLBOOTH_API_KEY;
+// Temporary demo mechanism: capture a default API key from the MCP URL query
+// (?apiKey or ?api_key) or from env. In production, prefer a proper
+// authenticated per-user configuration rather than query parameters.
+const updateDefaultApiKeyFromRequest = (req: NextRequest): void => {
+  const url = new URL(req.url);
+  const fromQuery =
+    url.searchParams.get("apiKey") ?? url.searchParams.get("api_key");
+  if (fromQuery) {
+    defaultApiKey = fromQuery;
+  }
+};
+
 const handler = createMcpHandler(
 	(server) => {
 		server.tool(
@@ -106,15 +129,27 @@ const handler = createMcpHandler(
           description: "Path to the endpoint on the resource server",
         },
       },
-      async (args: { apiKey?: string; resourceServerUrl?: string; endpointPath?: string }) => {
+      async (args: {
+        apiKey?: string;
+        resourceServerUrl?: string;
+        endpointPath?: string;
+      }) => {
         const { apiKey, resourceServerUrl, endpointPath } = args;
-        if (!apiKey) {
-          throw new Error("apiKey is required");
+        // If tool input omits apiKey, fall back to key captured from URL/env.
+        // This is a temporary approach for the demo.
+        const resolvedApiKey = apiKey ?? defaultApiKey;
+        if (!resolvedApiKey) {
+          throw new Error(
+            "apiKey is required (pass as tool param or set via MCP URL ?apiKey=... or env TOLLBOOTH_API_KEY)",
+          );
         }
         if (!resourceServerUrl || !endpointPath) {
           throw new Error("resourceServerUrl and endpointPath are required");
         }
-        const client = await getClientForBaseUrl(resourceServerUrl, apiKey);
+        const client = await getClientForBaseUrl(
+          resourceServerUrl,
+          resolvedApiKey,
+        );
         const res = await client.get(endpointPath);
 				return {
           content: [{ type: "text", text: JSON.stringify(res.data) }],
@@ -126,4 +161,20 @@ const handler = createMcpHandler(
 	{ basePath: "/api" },
 );
 
-export { handler as GET, handler as POST, handler as DELETE };
+export async function GET(req: NextRequest, ctx: unknown) {
+  updateDefaultApiKeyFromRequest(req);
+  // @ts-expect-error - handler conforms to Next.js route handler signature
+  return handler(req, ctx);
+}
+
+export async function POST(req: NextRequest, ctx: unknown) {
+  updateDefaultApiKeyFromRequest(req);
+  // @ts-expect-error - handler conforms to Next.js route handler signature
+  return handler(req, ctx);
+}
+
+export async function DELETE(req: NextRequest, ctx: unknown) {
+  updateDefaultApiKeyFromRequest(req);
+  // @ts-expect-error - handler conforms to Next.js route handler signature
+  return handler(req, ctx);
+}
