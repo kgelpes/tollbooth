@@ -18,8 +18,8 @@ function PublisherOnboardingContent() {
 
 	const handleSkip = () => {
 		console.log("Publisher onboarding skipped");
-		// Redirect to dashboard
-		router.push("/publisher/dashboard");
+		// Redirect back to role selection
+		router.push("/");
 	};
 
 	return (

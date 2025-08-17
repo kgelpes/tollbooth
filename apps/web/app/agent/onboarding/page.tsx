@@ -18,8 +18,8 @@ function AgentOnboardingContent() {
 
 	const handleSkip = () => {
 		console.log("Agent onboarding skipped");
-		// Redirect to dashboard
-		router.push("/agent/dashboard");
+		// Redirect back to role selection
+		router.push("/");
 	};
 
 	return (
