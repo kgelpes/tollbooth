@@ -5,9 +5,12 @@ import { Input } from "@tollbooth/ui/components/input";
 import { Label } from "@tollbooth/ui/components/label";
 import { CheckCircle, Code, Copy, ExternalLink } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 import type { StepProps } from "./types";
 
-export function IntegrationReady({ onNext, onBack }: StepProps) {
+export function IntegrationReady({ onSubmit }: StepProps) {
+	const [copied, setCopied] = useState(false);
+	const [codeCopied, setCodeCopied] = useState(false);
 	const apiKey = "agent_demo123456789";
 	const integrationCode = `import { TollboothClient } from '@tollbooth/client'
 
@@ -24,8 +27,33 @@ const response = await client.fetch('https://example.com/api/data')
 const wrappedAxios = client.wrap(axios)
 const data = await wrappedAxios.get('https://example.com/api/data')`;
 
+	const handleSubmit = (e: React.FormEvent) => {
+		e.preventDefault();
+		onSubmit({ completed: true, apiKey });
+	};
+
+	const copyApiKey = async () => {
+		try {
+			await navigator.clipboard.writeText(apiKey);
+			setCopied(true);
+			setTimeout(() => setCopied(false), 1500);
+		} catch {
+			// noop
+		}
+	};
+
+	const copyCode = async () => {
+		try {
+			await navigator.clipboard.writeText(integrationCode);
+			setCodeCopied(true);
+			setTimeout(() => setCodeCopied(false), 1500);
+		} catch {
+			// noop
+		}
+	};
+
 	return (
-		<div className="space-y-6">
+		<form onSubmit={handleSubmit} className="space-y-6">
 			<div className="text-center space-y-2">
 				<div className="w-16 h-16 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mx-auto">
 					<CheckCircle className="w-8 h-8 text-green-600" />
@@ -41,8 +69,14 @@ const data = await wrappedAxios.get('https://example.com/api/data')`;
 					<Label>API Key</Label>
 					<div className="flex gap-2">
 						<Input value={apiKey} readOnly />
-						<Button variant="outline" size="sm">
+						<Button
+							type="button"
+							variant="outline"
+							size="sm"
+							onClick={copyApiKey}
+						>
 							<Copy className="w-4 h-4" />
+							{copied ? "Copied!" : "Copy"}
 						</Button>
 					</div>
 				</div>
@@ -54,23 +88,26 @@ const data = await wrappedAxios.get('https://example.com/api/data')`;
 							<code>{integrationCode}</code>
 						</pre>
 						<Button
+							type="button"
 							variant="outline"
 							size="sm"
 							className="absolute top-2 right-2"
+							onClick={copyCode}
 						>
 							<Copy className="w-4 h-4" />
+							{codeCopied ? "Copied!" : "Copy"}
 						</Button>
 					</div>
 				</div>
 
 				<div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-					<Button variant="outline" asChild>
+					<Button type="button" variant="outline" asChild>
 						<Link href="/docs">
 							<ExternalLink className="w-4 h-4 mr-2" />
 							Documentation
 						</Link>
 					</Button>
-					<Button variant="outline" asChild>
+					<Button type="button" variant="outline" asChild>
 						<Link href="/sdk">
 							<Code className="w-4 h-4 mr-2" />
 							SDK Download
@@ -90,6 +127,8 @@ const data = await wrappedAxios.get('https://example.com/api/data')`;
 					</ul>
 				</div>
 			</div>
-		</div>
+
+			{/* Buttons handled by parent component */}
+		</form>
 	);
 }

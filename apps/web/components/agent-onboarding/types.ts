@@ -1,6 +1,7 @@
 export interface StepProps {
-	onNext: () => void;
+	onSubmit: (data: Record<string, unknown>) => void;
 	onBack: () => void;
+	initialData?: Record<string, unknown>;
 }
 
 export interface AgentOnboardingData {

@@ -3,11 +3,27 @@
 import { Input } from "@tollbooth/ui/components/input";
 import { Label } from "@tollbooth/ui/components/label";
 import { DollarSign } from "lucide-react";
+import { useId, useState } from "react";
 import type { StepProps } from "./types";
 
-export function PaymentConfiguration({ onNext, onBack }: StepProps) {
+export function PaymentConfiguration({
+	onSubmit,
+	initialData,
+}: StepProps) {
+	const baseFeeId = useId();
+	const [baseFee, setBaseFee] = useState(
+		((initialData?.baseFee as number) || 0.01).toString(),
+	);
+
+	const handleSubmit = (e: React.FormEvent) => {
+		e.preventDefault();
+		onSubmit({ baseFee: parseFloat(baseFee) });
+	};
+
+	// Validation handled by parent component
+
 	return (
-		<div className="space-y-6">
+		<form onSubmit={handleSubmit} className="space-y-6">
 			<div className="text-center space-y-2">
 				<div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
 					<DollarSign className="w-8 h-8 text-primary" />
@@ -20,12 +36,16 @@ export function PaymentConfiguration({ onNext, onBack }: StepProps) {
 
 			<div className="space-y-4">
 				<div className="space-y-2">
-					<Label>Base Fee (USDC)</Label>
+					<Label htmlFor={baseFeeId}>Base Fee (USDC)</Label>
 					<Input
+						id={baseFeeId}
 						type="number"
 						step="0.001"
+						min="0.001"
 						placeholder="0.01"
-						defaultValue="0.01"
+						value={baseFee}
+						onChange={(e) => setBaseFee(e.target.value)}
+						required
 					/>
 					<p className="text-sm text-muted-foreground">
 						This is the default fee charged for automated requests
@@ -50,6 +70,8 @@ export function PaymentConfiguration({ onNext, onBack }: StepProps) {
 					</div>
 				</div>
 			</div>
-		</div>
+
+			{/* Buttons handled by parent component */}
+		</form>
 	);
 }

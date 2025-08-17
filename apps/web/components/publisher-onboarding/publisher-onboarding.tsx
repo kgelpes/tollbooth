@@ -12,6 +12,7 @@ import {
 import { Progress } from "@tollbooth/ui/components/progress";
 import { ArrowRight } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { IntegrationSetup } from "./integration-setup";
 import { PaymentConfiguration } from "./payment-configuration";
 import { RevenueSplits } from "./revenue-splits";
@@ -23,6 +24,16 @@ interface PublisherOnboardingProps {
 	currentStep?: number;
 }
 
+interface FormData {
+	siteName: string;
+	siteUrl: string;
+	baseFee: number;
+	revenueSplits: Array<{
+		address: string;
+		percentage: number;
+	}>;
+}
+
 export function PublisherOnboarding({
 	onComplete,
 	onSkip,
@@ -31,9 +42,23 @@ export function PublisherOnboarding({
 	const router = useRouter();
 	const totalSteps = 4;
 	const progress = (currentStep / totalSteps) * 100;
+	const [formData, setFormData] = useState<FormData>({
+		siteName: "",
+		siteUrl: "",
+		baseFee: 0.01,
+		revenueSplits: [{ address: "", percentage: 100 }],
+	});
 
-	const handleNext = () => {
+	const handleFormSubmit = (stepData: Record<string, unknown>) => {
+		const updatedFormData = { ...formData, ...stepData };
+		setFormData(updatedFormData);
+
 		if (currentStep === totalSteps) {
+			// Complete the onboarding with all collected data
+			console.log(
+				"Completing publisher onboarding with data:",
+				updatedFormData,
+			);
 			onComplete();
 		} else {
 			router.push(`/publisher/onboarding?step=${currentStep + 1}`);
@@ -49,13 +74,44 @@ export function PublisherOnboarding({
 	const renderStep = () => {
 		switch (currentStep) {
 			case 1:
-				return <SiteInformation onNext={handleNext} onBack={handleBack} />;
+				return (
+					<SiteInformation
+						onSubmit={handleFormSubmit}
+						onBack={handleBack}
+						initialData={{
+							siteName: formData.siteName,
+							siteUrl: formData.siteUrl,
+						}}
+					/>
+				);
 			case 2:
-				return <PaymentConfiguration onNext={handleNext} onBack={handleBack} />;
+				return (
+					<PaymentConfiguration
+						onSubmit={handleFormSubmit}
+						onBack={handleBack}
+						initialData={{
+							baseFee: formData.baseFee,
+						}}
+					/>
+				);
 			case 3:
-				return <RevenueSplits onNext={handleNext} onBack={handleBack} />;
+				return (
+					<RevenueSplits
+						onSubmit={handleFormSubmit}
+						onBack={handleBack}
+						initialData={{
+							revenueSplits: formData.revenueSplits,
+						}}
+					/>
+				);
 			case 4:
-				return <IntegrationSetup onNext={handleNext} onBack={handleBack} />;
+				return (
+					<IntegrationSetup
+						onSubmit={handleFormSubmit}
+						onBack={handleBack}
+						initialData={{}}
+					/>
+				);
 			default:
 				return null;
 		}
@@ -83,27 +139,27 @@ export function PublisherOnboarding({
 					{renderStep()}
 
 					<div className="flex justify-between mt-8">
-						<div className="flex gap-2">
-							{currentStep === 1 ? (
-								<Button variant="outline" onClick={onSkip}>
-									Back to Role Selection
-								</Button>
-							) : (
-								<Button variant="outline" onClick={handleBack}>
-									Back
-								</Button>
-							)}
-						</div>
-
-						<Button onClick={handleNext}>
-							{currentStep === totalSteps ? (
-								"Complete Setup"
-							) : (
-								<>
-									Next
-									<ArrowRight className="w-4 h-4 ml-2" />
-								</>
-							)}
+						{currentStep === 1 ? (
+							<Button variant="outline" onClick={onSkip}>
+								Back to Role Selection
+							</Button>
+						) : (
+							<Button variant="outline" onClick={handleBack}>
+								Back
+							</Button>
+						)}
+						
+						<Button 
+							onClick={() => {
+								// Trigger form submission for the current step
+								const form = document.querySelector('form');
+								if (form) {
+									form.requestSubmit();
+								}
+							}}
+						>
+							{currentStep === totalSteps ? "Complete Setup" : "Next"}
+							{currentStep !== totalSteps && <ArrowRight className="w-4 h-4 ml-2" />}
 						</Button>
 					</div>
 				</CardContent>

@@ -10,31 +10,53 @@ import {
 	SelectValue,
 } from "@tollbooth/ui/components/select";
 import { Bot } from "lucide-react";
+import { useId, useState } from "react";
 import type { StepProps } from "./types";
 
-export function AgentInformation({ onNext, onBack }: StepProps) {
+export function AgentInformation({ onSubmit, initialData }: StepProps) {
+	const agentNameId = useId();
+	const agentTypeId = useId();
+
+	const [agentName, setAgentName] = useState(
+		(initialData?.agentName as string) || "",
+	);
+	const [agentType, setAgentType] = useState(
+		(initialData?.agentType as string) || "",
+	);
+
+	const handleSubmit = (e: React.FormEvent) => {
+		e.preventDefault();
+		onSubmit({ agentName, agentType });
+	};
+
+	// Validation handled by parent component
+
 	return (
-		<div className="space-y-6">
+		<form onSubmit={handleSubmit} className="space-y-6">
 			<div className="text-center space-y-2">
 				<div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
 					<Bot className="w-8 h-8 text-primary" />
 				</div>
 				<h2 className="text-2xl font-semibold">Agent Information</h2>
-				<p className="text-muted-foreground">
-					Tell us about your agent or bot
-				</p>
+				<p className="text-muted-foreground">Tell us about your agent or bot</p>
 			</div>
 
 			<div className="space-y-4">
 				<div className="space-y-2">
-					<Label>Agent Name</Label>
-					<Input placeholder="e.g., News Scraper Bot" defaultValue="" />
+					<Label htmlFor={agentNameId}>Agent Name</Label>
+					<Input
+						id={agentNameId}
+						placeholder="e.g., News Scraper Bot"
+						value={agentName}
+						onChange={(e) => setAgentName(e.target.value)}
+						required
+					/>
 				</div>
 
 				<div className="space-y-2">
-					<Label>Agent Type</Label>
-					<Select defaultValue="">
-						<SelectTrigger>
+					<Label htmlFor={agentTypeId}>Agent Type</Label>
+					<Select value={agentType || ""} onValueChange={setAgentType}>
+						<SelectTrigger id={agentTypeId}>
 							<SelectValue placeholder="Select agent type" />
 						</SelectTrigger>
 						<SelectContent>
@@ -59,6 +81,8 @@ export function AgentInformation({ onNext, onBack }: StepProps) {
 					</ul>
 				</div>
 			</div>
-		</div>
+
+			{/* Button is handled by parent component for step 1 */}
+		</form>
 	);
 }

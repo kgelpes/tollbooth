@@ -12,6 +12,7 @@ import {
 import { Progress } from "@tollbooth/ui/components/progress";
 import { ArrowRight } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { AgentInformation } from "./agent-information";
 import { IntegrationReady } from "./integration-ready";
 import { PaymentSetup } from "./payment-setup";
@@ -23,6 +24,13 @@ interface AgentOnboardingProps {
 	currentStep?: number;
 }
 
+interface FormData {
+	agentName: string;
+	agentType: string;
+	paymentSetup: Record<string, unknown>;
+	spendingControls: Record<string, unknown>;
+}
+
 export function AgentOnboarding({
 	onComplete,
 	onSkip,
@@ -31,9 +39,20 @@ export function AgentOnboarding({
 	const router = useRouter();
 	const totalSteps = 4;
 	const progress = (currentStep / totalSteps) * 100;
+	const [formData, setFormData] = useState<FormData>({
+		agentName: "",
+		agentType: "",
+		paymentSetup: {},
+		spendingControls: {},
+	});
 
-	const handleNext = () => {
+	const handleFormSubmit = (stepData: Record<string, unknown>) => {
+		const updatedFormData = { ...formData, ...stepData };
+		setFormData(updatedFormData);
+
 		if (currentStep === totalSteps) {
+			// Complete the onboarding with all collected data
+			console.log("Completing onboarding with data:", updatedFormData);
 			onComplete();
 		} else {
 			router.push(`/agent/onboarding?step=${currentStep + 1}`);
@@ -49,13 +68,40 @@ export function AgentOnboarding({
 	const renderStep = () => {
 		switch (currentStep) {
 			case 1:
-				return <AgentInformation onNext={handleNext} onBack={handleBack} />;
+				return (
+					<AgentInformation
+						onSubmit={handleFormSubmit}
+						onBack={handleBack}
+						initialData={{
+							agentName: formData.agentName,
+							agentType: formData.agentType,
+						}}
+					/>
+				);
 			case 2:
-				return <PaymentSetup onNext={handleNext} onBack={handleBack} />;
+				return (
+					<PaymentSetup
+						onSubmit={handleFormSubmit}
+						onBack={handleBack}
+						initialData={formData.paymentSetup}
+					/>
+				);
 			case 3:
-				return <SpendingControls onNext={handleNext} onBack={handleBack} />;
+				return (
+					<SpendingControls
+						onSubmit={handleFormSubmit}
+						onBack={handleBack}
+						initialData={formData.spendingControls}
+					/>
+				);
 			case 4:
-				return <IntegrationReady onNext={handleNext} onBack={handleBack} />;
+				return (
+					<IntegrationReady
+						onSubmit={handleFormSubmit}
+						onBack={handleBack}
+						initialData={{}}
+					/>
+				);
 			default:
 				return null;
 		}
@@ -83,27 +129,27 @@ export function AgentOnboarding({
 					{renderStep()}
 
 					<div className="flex justify-between mt-8">
-						<div className="flex gap-2">
-							{currentStep === 1 ? (
-								<Button variant="outline" onClick={onSkip}>
-									Back to Role Selection
-								</Button>
-							) : (
-								<Button variant="outline" onClick={handleBack}>
-									Back
-								</Button>
-							)}
-						</div>
-
-						<Button onClick={handleNext}>
-							{currentStep === totalSteps ? (
-								"Complete Setup"
-							) : (
-								<>
-									Next
-									<ArrowRight className="w-4 h-4 ml-2" />
-								</>
-							)}
+						{currentStep === 1 ? (
+							<Button variant="outline" onClick={onSkip}>
+								Back to Role Selection
+							</Button>
+						) : (
+							<Button variant="outline" onClick={handleBack}>
+								Back
+							</Button>
+						)}
+						
+						<Button 
+							onClick={() => {
+								// Trigger form submission for the current step
+								const form = document.querySelector('form');
+								if (form) {
+									form.requestSubmit();
+								}
+							}}
+						>
+							{currentStep === totalSteps ? "Complete Setup" : "Next"}
+							{currentStep !== totalSteps && <ArrowRight className="w-4 h-4 ml-2" />}
 						</Button>
 					</div>
 				</CardContent>

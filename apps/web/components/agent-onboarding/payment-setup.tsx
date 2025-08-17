@@ -1,4 +1,5 @@
 import { Button } from "@tollbooth/ui/button";
+import { Wallet } from "lucide-react";
 import { useState } from "react";
 import { useBalance } from "wagmi";
 import { useOnramp } from "../../hooks/useOnramp";
@@ -8,7 +9,7 @@ import type { StepProps } from "./types";
 
 const USDC_ADDRESS = "0x036CbD53842c5426634e7929541eC2318f3dCF7e" as const;
 
-export function PaymentSetup(_: StepProps) {
+export function PaymentSetup({ onSubmit }: StepProps) {
 	const { address, isLoading, isError, error, create, isCreating } =
 		useServerWallet();
 	const [copied, setCopied] = useState(false);
@@ -40,10 +41,22 @@ export function PaymentSetup(_: StepProps) {
 		}
 	};
 
+	const handleSubmit = (e: React.FormEvent) => {
+		e.preventDefault();
+		onSubmit({
+			walletAddress: address,
+			hasWallet: Boolean(address),
+		});
+	};
+
+
+
 	return (
-		<div className="space-y-6">
+		<form onSubmit={handleSubmit} className="space-y-6">
 			<div className="text-center space-y-2">
-				<div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto" />
+				<div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+					<Wallet className="w-8 h-8 text-primary" />
+				</div>
 				<h2 className="text-2xl font-semibold">Payment Setup</h2>
 				<p className="text-muted-foreground">Configure payment options</p>
 			</div>
@@ -131,6 +144,8 @@ export function PaymentSetup(_: StepProps) {
 					</div>
 				</div>
 			</div>
-		</div>
+
+			{/* Buttons handled by parent component */}
+		</form>
 	);
 }
