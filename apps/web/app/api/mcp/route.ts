@@ -1,6 +1,7 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import { CdpClient } from "@coinbase/cdp-sdk";
 import axios, { type AxiosInstance } from "axios";
-import { createMcpHandler } from "mcp-handler";
+import { createMcpHandler, withMcpAuth } from "mcp-handler";
 import type {
   Account,
   Chain,
@@ -29,8 +30,18 @@ const requiredEnvKeys: RequiredEnvKey[] = [
   "CDP_WALLET_SECRET",
 ];
 
+const requestContext = new AsyncLocalStorage<{ apiKey: string }>();
+const getCurrentApiKey = (): string => {
+  const store = requestContext.getStore();
+  if (!store?.apiKey) {
+    throw new Error("Missing Authorization token");
+  }
+  return store.apiKey;
+};
+
 const accountCache = new Map<string, Promise<ReturnType<typeof toAccount>>>();
-const getAccount = (apiKey: string): Promise<ReturnType<typeof toAccount>> => {
+const getAccount = (): Promise<ReturnType<typeof toAccount>> => {
+  const apiKey = getCurrentApiKey();
   let existing = accountCache.get(apiKey);
   if (!existing) {
     existing = (async () => {
@@ -64,15 +75,13 @@ const getAccount = (apiKey: string): Promise<ReturnType<typeof toAccount>> => {
 };
 
 const clientCache = new Map<string, Promise<AxiosInstance>>();
-const getClientForBaseUrl = (
-  baseURL: string,
-  apiKey: string,
-): Promise<AxiosInstance> => {
+const getClientForBaseUrl = (baseURL: string): Promise<AxiosInstance> => {
+  const apiKey = getCurrentApiKey();
   const cacheKey = `${baseURL}:${apiKey}`;
   let existing = clientCache.get(cacheKey);
   if (!existing) {
     existing = (async () => {
-      const account = await getAccount(apiKey);
+      const account = await getAccount();
       const signer = createWalletClient({
         account,
         chain: base,
@@ -96,19 +105,6 @@ const getClientForBaseUrl = (
   return existing;
 };
 
-let defaultApiKey: string | undefined = process.env.TOLLBOOTH_API_KEY;
-// Temporary demo mechanism: capture a default API key from the MCP URL query
-// (?apiKey or ?api_key) or from env. In production, prefer a proper
-// authenticated per-user configuration rather than query parameters.
-const updateDefaultApiKeyFromRequest = (req: Request): void => {
-  const url = new URL(req.url);
-  const fromQuery =
-    url.searchParams.get("apiKey") ?? url.searchParams.get("api_key");
-  if (fromQuery) {
-    defaultApiKey = fromQuery;
-  }
-};
-
 const handler = createMcpHandler(
 	(server) => {
 		server.tool(
@@ -126,18 +122,10 @@ const handler = createMcpHandler(
       },
       async (args: { resourceServerUrl?: string; endpointPath?: string }) => {
         const { resourceServerUrl, endpointPath } = args;
-        // If tool input omits apiKey, fall back to key captured from URL/env.
-        // This is a temporary approach for the demo.
-        const resolvedApiKey = defaultApiKey;
-        if (!resolvedApiKey) {
-          throw new Error(
-            "apiKey is required (pass as tool param or set via MCP URL ?apiKey=... or env TOLLBOOTH_API_KEY)",
-          );
-        }
         if (!resourceServerUrl || !endpointPath) {
           throw new Error("resourceServerUrl and endpointPath are required");
         }
-        const client = await getClientForBaseUrl(resourceServerUrl, resolvedApiKey);
+        const client = await getClientForBaseUrl(resourceServerUrl);
         const res = await client.get(endpointPath);
 				return {
           content: [{ type: "text", text: JSON.stringify(res.data) }],
@@ -149,19 +137,58 @@ const handler = createMcpHandler(
 	{ basePath: "/api" },
 );
 
-const typedHandler = handler as unknown as (req: Request) => Promise<Response>;
+const verifyToken = async (_req: Request, bearerToken?: string) => {
+  if (!bearerToken) return undefined;
+  // For demo: accept any non-empty token. In production, validate properly.
+  return {
+    token: bearerToken,
+    scopes: ["read:x402"],
+    clientId: "tollbooth-client",
+  };
+};
+
+const authHandler = withMcpAuth(handler, verifyToken, {
+  required: true,
+  requiredScopes: ["read:x402"],
+  resourceMetadataPath: "/.well-known/oauth-protected-resource",
+});
+
+const typedAuthHandler = authHandler as unknown as (
+  req: Request,
+) => Promise<Response>;
 
 export async function GET(req: Request) {
-  updateDefaultApiKeyFromRequest(req);
-  return typedHandler(req);
+  const authHeader =
+    req.headers.get("authorization") ?? req.headers.get("Authorization");
+  const token = authHeader?.startsWith("Bearer ")
+    ? authHeader.slice("Bearer ".length).trim()
+    : undefined;
+  if (!token) {
+    return typedAuthHandler(req);
+  }
+  return requestContext.run({ apiKey: token }, () => typedAuthHandler(req));
 }
 
 export async function POST(req: Request) {
-  updateDefaultApiKeyFromRequest(req);
-  return typedHandler(req);
+  const authHeader =
+    req.headers.get("authorization") ?? req.headers.get("Authorization");
+  const token = authHeader?.startsWith("Bearer ")
+    ? authHeader.slice("Bearer ".length).trim()
+    : undefined;
+  if (!token) {
+    return typedAuthHandler(req);
+  }
+  return requestContext.run({ apiKey: token }, () => typedAuthHandler(req));
 }
 
 export async function DELETE(req: Request) {
-  updateDefaultApiKeyFromRequest(req);
-  return typedHandler(req);
+  const authHeader =
+    req.headers.get("authorization") ?? req.headers.get("Authorization");
+  const token = authHeader?.startsWith("Bearer ")
+    ? authHeader.slice("Bearer ".length).trim()
+    : undefined;
+  if (!token) {
+    return typedAuthHandler(req);
+  }
+  return requestContext.run({ apiKey: token }, () => typedAuthHandler(req));
 }
