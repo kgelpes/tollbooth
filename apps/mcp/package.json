@@ -1,6 +1,6 @@
 {
-	"name": "@tollbooth/mcp",
-	"version": "1.0.0",
+	"name": "tollbooth-mcp",
+	"version": "1.0.1",
 	"description": "",
 	"type": "module",
 	"scripts": {
@@ -13,6 +13,13 @@
 	"license": "ISC",
 	"bin": {
 		"tollbooth-mcp": "build/index.js"
+	},
+	"files": [
+		"build",
+		"README.md"
+	],
+	"publishConfig": {
+		"access": "public"
 	},
 	"dependencies": {
 		"@coinbase/cdp-sdk": "^1.35.0",
