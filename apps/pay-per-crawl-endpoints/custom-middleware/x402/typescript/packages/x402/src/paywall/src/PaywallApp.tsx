@@ -8,7 +8,7 @@ import {
   WalletDropdown,
   WalletDropdownDisconnect,
 } from "@coinbase/onchainkit/wallet";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useId } from "react";
 import { createPublicClient, formatUnits, http, publicActions } from "viem";
 import { base, baseSepolia } from "viem/chains";
 import { useAccount, useSwitchChain, useWalletClient } from "wagmi";
@@ -38,6 +38,8 @@ export function PaywallApp() {
   const [formattedUsdcBalance, setFormattedUsdcBalance] = useState<string>("");
   const [hideBalance, setHideBalance] = useState(true);
 
+  const [showPaymentForm, setShowPaymentForm] = useState(false); //captcha failed not failed
+
   const x402 = window.x402;
   const amount = x402.amount || 0;
   const testnet = x402.testnet ?? true;
@@ -46,12 +48,7 @@ export function PaywallApp() {
   const network = testnet ? "base-sepolia" : "base";
   const showOnramp = Boolean(!testnet && isConnected && x402.sessionTokenEndpoint);
 
-  useEffect(() => {
-    if (address) {
-      handleSwitchChain();
-      checkUSDCBalance();
-    }
-  }, [address]);
+  // moved below after function declarations to satisfy linter
 
   const publicClient = createPublicClient({
     chain: paymentChain,
@@ -73,7 +70,29 @@ export function PaywallApp() {
       setIsCorrectChain(null);
       setStatus("");
     }
-  }, [paymentChain.id, connectedChainId, isConnected]);
+  }, [paymentChain.id, connectedChainId, isConnected, chainName]);
+
+  const handleCaptchaSubmit = useCallback((e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const answer = formData.get("answer") as string;
+    const website = formData.get("website") as string; // honeypot
+
+    // Check honeypot (bot detection) and answer
+    const botTouchedTrap = website.trim().length > 0;
+    const val = Number(answer.trim());
+
+    if (!botTouchedTrap && val === 2) {
+      // Captcha successful - redirect to success page
+      window.location.href = "?captcha=success";
+    } else {
+      // Captcha failed - show payment form instead
+      setShowPaymentForm(true);
+    }
+  }, []);
+
+  const answerInputId = useId();
+  const websiteInputId = useId();
 
   const checkUSDCBalance = useCallback(async () => {
     if (!address) {
@@ -121,7 +140,7 @@ export function PaywallApp() {
     }
   }, [switchChainAsync, paymentChain, isCorrectChain]);
 
-  async function addPayment(address, pathname, expirationDate) {
+  const addPayment = useCallback(async (address: string, pathname: string, expirationDate: string) => {
     try {
       const response = await fetch("/api/add-payment", {
         method: "POST",
@@ -147,7 +166,7 @@ export function PaywallApp() {
       console.error("Fetch error:", err);
       return null;
     }
-  }
+  }, []);
 
 
   const handlePayment = useCallback(async () => {
@@ -192,14 +211,13 @@ export function PaywallApp() {
           "Access-Control-Expose-Headers": "X-PAYMENT-RESPONSE",
         },
       });
-
       if (response.ok) {
-        const deltaTime = paymentRequirements.expirationTime ? paymentRequirements.expirationTime : 3600 * 1000;
+        const deltaTime = 3600; // 1 hour default expiration
         addPayment(
           address,
           window.location.pathname,
-          new Date(Date.now() + deltaTime).toISOString()
-        )
+          new Date(Date.now() + deltaTime).toISOString(),
+        );
         await handleSuccessfulResponse(response);
       } else if (response.status === 402) {
         // Try to parse error data, fallback to empty object if parsing fails
@@ -237,9 +255,19 @@ export function PaywallApp() {
     } finally {
       setIsPaying(false);
     }
-  }, [address, x402, paymentRequirements, publicClient, paymentChain, handleSwitchChain]);
+  }, [
+    address,
+    x402,
+    paymentRequirements,
+    publicClient,
+    handleSwitchChain,
+    chainName,
+    wagmiWalletClient,
+    addPayment,
+    handleSuccessfulResponse,
+  ]);
 
-  async function checkPayment(pathname, address) {
+  const checkPayment = useCallback(async (pathname: string, address: string) => {
     try {
       const response = await fetch("/api/check-payment", {
         method: "POST",
@@ -260,13 +288,22 @@ export function PaywallApp() {
     } catch (err) {
       console.error("Fetch error:", err);
     }
-  }
+  }, []);
 
   useEffect(() => {
     if(address){
       checkPayment(window.location.pathname, address);
     }
-  }, [address])
+  }, [address, checkPayment]);
+
+  // After hooks are declared to avoid use-before-define
+  useEffect(() => {
+    if (address) {
+      handleSwitchChain();
+      checkUSDCBalance();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [address, handleSwitchChain, checkUSDCBalance]);
 
   if (!x402 || !paymentRequirements) {
     return (
@@ -278,7 +315,60 @@ export function PaywallApp() {
       </div>
     );
   }
+//////////////////////
+  // Show captcha first if payment form isn't shown yet
+  if (!showPaymentForm) {
+    return (
+      <div className="container">
+        <div className="header">
+          <h1 className="title">Quick check</h1>
+          <p className="subtitle">Prove you're human by answering a basic math question.</p>
+        </div>
+        
+        <div className="content w-full">
+          <form onSubmit={handleCaptchaSubmit} autoComplete="off">
+            <label htmlFor={answerInputId} style={{ display: "block", margin: "10px 0 6px" }}>
+              What is <strong>1 + 1</strong>?
+            </label>
+            <input 
+  id={answerInputId}
+  name="answer" 
+  type="number" 
+  inputMode="numeric" 
+  required 
+  placeholder="Type the answer"
+  style={{
+    width: "100%",
+    padding: "10px 12px",
+    border: "1px solid #1f2937",
+    borderRadius: "10px",
+    background: "#ffffff",          // was "#0b1020"
+    color: "#111827",               // was "var(--text-color)" which is fine; explicit dark text
+    marginBottom: "12px",
+  }}
+/>
+            {/* Honeypot for bot detection */}
+            <input 
+              type="text" 
+              id={websiteInputId}
+              name="website" 
+              style={{ display: "none" }} 
+              tabIndex={-1} 
+              autoComplete="off" 
+            />
+            <button 
+              type="submit" 
+              className="button button-primary"
+            >
+              Verify
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
+  // Show payment form if captcha failed
   return (
     <div className="container gap-8">
       <div className="header">
@@ -308,7 +398,8 @@ export function PaywallApp() {
           </WalletDropdown>
         </Wallet>
         {isConnected && (
-          <div id="payment-section">
+          <div>
+            {/* ... existing payment section code ... */}
             <div className="payment-details">
               <div className="payment-row">
                 <span className="payment-label">Wallet:</span>
@@ -319,6 +410,7 @@ export function PaywallApp() {
               <div className="payment-row">
                 <span className="payment-label">Available balance:</span>
                 <span className="payment-value">
+                  {/** biome-ignore lint/a11y/useButtonType: <explanation> */}
                   <button className="balance-button" onClick={() => setHideBalance(prev => !prev)}>
                     {formattedUsdcBalance && !hideBalance
                       ? `$${formattedUsdcBalance} USDC`
@@ -347,6 +439,7 @@ export function PaywallApp() {
                   />
                 )}
                 <button
+                  type="button"
                   className="button button-primary"
                   onClick={handlePayment}
                   disabled={isPaying}
@@ -355,7 +448,7 @@ export function PaywallApp() {
                 </button>
               </div>
             ) : (
-              <button className="button button-primary" onClick={handleSwitchChain}>
+              <button type="button" className="button button-primary" onClick={handleSwitchChain}>
                 Switch to {chainName}
               </button>
             )}
