@@ -37,7 +37,10 @@ export function SiweSignInButton(props: SiweSignInButtonProps) {
 				return;
 			}
 
-			const chainHex = (await ethereum.request({ method: "eth_chainId", params: [] })) as string;
+			const chainHex = (await ethereum.request({
+				method: "eth_chainId",
+				params: [],
+			})) as string;
 			const chainId = Number.parseInt(chainHex, 16);
 
 			const { data: nonceData } = await authClient.siwe.nonce({
@@ -82,12 +85,13 @@ export function SiweSignInButton(props: SiweSignInButtonProps) {
 				walletAddress: address,
 				chainId,
 			});
+
 			if (!verifyRes.data) {
 				alert("Sign in failed");
 				return;
 			}
 			// Force immediate session refresh for UI
-			await refetch();
+			refetch();
 		} catch (error) {
 			console.error("SIWE sign-in error:", error);
 			alert("Sign in failed");

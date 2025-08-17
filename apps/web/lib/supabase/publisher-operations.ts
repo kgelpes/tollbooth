@@ -297,35 +297,26 @@ export async function validateApiKey(
 		.select(`
       publisher_id,
       is_active,
+      usage_count,
       publishers(*)
     `)
 		.eq("api_key", apiKey)
 		.eq("is_active", true)
-		.single();
+		.single<{ publisher_id: string; is_active: boolean; usage_count: number | null; publishers: Publisher }>();
 
 	if (error || !data?.is_active) {
 		return null;
 	}
 
 	// Update usage tracking
+	const currentCount = typeof data.usage_count === "number" ? data.usage_count : 0;
 	await supabase
 		.from("publisher_api_keys")
 		.update({
 			last_used_at: new Date().toISOString(),
-			usage_count: supabase.raw("usage_count + 1"),
+			usage_count: currentCount + 1,
 		})
 		.eq("api_key", apiKey);
 
-	return data.publishers as Publisher;
-}
-	// Update usage tracking
-	await supabase
-		.from("publisher_api_keys")
-		.update({
-			last_used_at: new Date().toISOString(),
-			usage_count: supabase.raw("usage_count + 1"),
-		})
-		.eq("api_key", apiKey);
-
-	return data.publishers as Publisher;
+	return data.publishers ?? null;
 }

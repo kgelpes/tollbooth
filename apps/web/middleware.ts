@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import { auth } from "./lib/auth";
 
 export async function middleware(request: NextRequest) {
 	const { pathname } = request.nextUrl;
@@ -13,18 +14,9 @@ export async function middleware(request: NextRequest) {
 	}
 
 	try {
-		const sessionRes = await fetch(new URL("/api/auth/session", request.url), {
-			headers: {
-				cookie: request.headers.get("cookie") ?? "",
-			},
-			cache: "no-store",
-		});
-
-		if (sessionRes.ok) {
-			const data = await sessionRes.json().catch(() => null);
-			if (data?.session) {
-				return NextResponse.next();
-			}
+		const session = await auth.api.getSession({ headers: request.headers });
+		if (session) {
+			return NextResponse.next();
 		}
 	} catch (error) {
 		console.error("Middleware auth check failed:", error);
@@ -37,5 +29,6 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
+	runtime: "nodejs",
 	matcher: ["/agent/dashboard/:path*", "/publisher/dashboard/:path*"],
 };

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { AgentOnboarding } from "../../../components/agent-onboarding";
+import { AgentOnboarding } from "../../../components/agent-onboarding/agent-onboarding";
 
 export default function AgentOnboardingPage() {
 	const searchParams = useSearchParams();

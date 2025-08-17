@@ -3,40 +3,16 @@
     "editor.defaultFormatter": "biomejs.biome"
   },
   "[typescript]": {
-<<<<<<< Updated upstream
-    "editor.defaultFormatter": "vscode.typescript-language-features"
-  }
-=======
-    "editor.defaultFormatter": "denoland.vscode-deno"
-  },
-  "[typescriptreact]": {
     "editor.defaultFormatter": "vscode.typescript-language-features"
   },
-  "deno.enablePaths": [
-    "supabase/functions"
-  ],
-  "deno.lint": true,
-  "deno.unstable": [
-    "bare-node-builtins",
-    "byonm",
-    "sloppy-imports",
-    "unsafe-proto",
-    "webgpu",
-    "broadcast-channel",
-    "worker-options",
-    "cron",
-    "kv",
-    "ffi",
-    "fs",
-    "http",
-    "net"
-  ],
   "editor.codeActionsOnSave": {
     "source.fixAll.biome": "explicit"
   },
   "editor.defaultFormatter": "biomejs.biome",
   "editor.formatOnSave": true,
   "eslint.enable": false,
-  "prettier.enable": false
->>>>>>> Stashed changes
+  "prettier.enable": false,
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "biomejs.biome"
+  }
 }

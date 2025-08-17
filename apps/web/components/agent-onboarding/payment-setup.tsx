@@ -1,8 +1,24 @@
-"use client";
-
+import { Button } from "@tollbooth/ui/button";
+import { useState } from "react";
+import { useServerWallet } from "../../hooks/useServerWallet";
 import type { StepProps } from "./types";
 
-export function PaymentSetup({ onNext, onBack }: StepProps) {
+export function PaymentSetup(_: StepProps) {
+	const { address, isLoading, isError, error, create, isCreating } =
+		useServerWallet();
+	const [copied, setCopied] = useState(false);
+
+	const copyAddress = async () => {
+		if (!address) return;
+		try {
+			await navigator.clipboard.writeText(address);
+			setCopied(true);
+			setTimeout(() => setCopied(false), 1500);
+		} catch {
+			// noop
+		}
+	};
+
 	return (
 		<div className="space-y-6">
 			<div className="text-center space-y-2">
@@ -12,9 +28,39 @@ export function PaymentSetup({ onNext, onBack }: StepProps) {
 			</div>
 
 			<div className="space-y-4">
-				<div className="text-center space-y-4">
-					<div className="p-6 border-2 border-dashed rounded-lg text-sm text-muted-foreground">
-						Payment connector will appear here.
+				<div className="space-y-4">
+					<div className="p-6 border rounded-lg">
+						{isLoading ? (
+							<div className="text-sm text-muted-foreground">
+								Loading server wallet…
+							</div>
+						) : address ? (
+							<div className="space-y-3">
+								<div className="text-sm text-muted-foreground">
+									Your server wallet
+								</div>
+								<div className="flex items-center gap-2">
+									<code className="px-2 py-1 rounded bg-muted text-xs break-all">
+										{address}
+									</code>
+									<Button variant="outline" size="sm" onClick={copyAddress}>
+										{copied ? "Copied" : "Copy"}
+									</Button>
+								</div>
+							</div>
+						) : (
+							<div className="space-y-3">
+								<div className="text-sm text-muted-foreground">
+									No server wallet found for your account.
+								</div>
+								<Button onClick={() => create()} disabled={isCreating}>
+									{isCreating ? "Creating…" : "Create server wallet"}
+								</Button>
+							</div>
+						)}
+						{isError && (
+							<div className="mt-2 text-sm text-red-600">{error}</div>
+						)}
 					</div>
 
 					<div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg text-left">

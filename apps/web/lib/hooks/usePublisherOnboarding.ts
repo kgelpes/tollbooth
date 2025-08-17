@@ -283,38 +283,3 @@ export function usePublisherOnboarding(): UsePublisherOnboardingReturn {
 		reset,
 	};
 }
-			step2Data,
-			step3Data,
-			validateStep1,
-			validateStep2,
-			validateStep3,
-		],
-	);
-
-	const reset = useCallback(() => {
-		setStep1Data(initialStep1);
-		setStep2Data(initialStep2);
-		setStep3Data(initialStep3);
-		setIsSubmitting(false);
-		setErrors([]);
-	}, []);
-
-	return {
-		step1Data,
-		step2Data,
-		step3Data,
-		updateStep1,
-		updateStep2,
-		updateStep3,
-		addRevenueSplit,
-		removeRevenueSplit,
-		updateRevenueSplit,
-		validateStep1,
-		validateStep2,
-		validateStep3,
-		submitOnboarding,
-		isSubmitting,
-		errors,
-		reset,
-	};
-}
