@@ -37,8 +37,8 @@ CDP_API_KEY_ID=xxx
 CDP_API_KEY_SECRET=xxx
 CDP_WALLET_SECRET=xxx
 ```
-
 mcp.json:
+```
 
 {
   "mcpServers": {
@@ -56,7 +56,7 @@ mcp.json:
       }
     }
   } }
-  
+```
 -----
 
 ## Captcha Web App
