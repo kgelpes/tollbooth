@@ -18,6 +18,8 @@
     "node": ">=18"
   },
   "dependencies": {
-    "@coinbase/cdp-sdk": "^1.35.0"
+    "@coinbase/cdp-sdk": "^1.35.0",
+    "axios": "1.11.0",
+    "x402-axios": "0.5.1"
   }
 }

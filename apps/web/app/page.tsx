@@ -1,5 +1,5 @@
-import { RoleSelection } from "../components/role-selection";
+import { LandingPage } from "../components/landing-page";
 
 export default function Home() {
-	return <RoleSelection />;
+	return <LandingPage />;
 }
